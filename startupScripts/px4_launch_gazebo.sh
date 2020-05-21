@@ -22,7 +22,7 @@ export PX4_HOME_LON=10.46091
 # export PX4_HOME_LON=10.46086
 if [[ $1 = "" ]]; then
 # change this to a location of your firmware! must use V1.8.2 of PX4 Firmware
-FIRMDIR="/home/*/Code/iROS/iROS_PX4/"
+FIRMDIR="/home/balint/Firmware/"
 else
 FIRMDIR=$1
 fi
@@ -30,6 +30,9 @@ fi
 echo $FIRMDIR
 # source ros - remeber to change to your version, e.g. melodic/kinetic
 source /opt/ros/melodic/setup.bash
+
+# source catkin workspace
+source /home/balint/catkin_ws/devel/setup.bash
 
 # argument used to browse to your PX4 SITL firmware folder
 cd $FIRMDIR
@@ -40,5 +43,5 @@ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/sitl_gazebo
 
 # # launch basic PX4 SITL
-roslaunch px4 d4e_posix.launch 
+roslaunch power-line-inspection main.launch
 # roslaunch px4 
