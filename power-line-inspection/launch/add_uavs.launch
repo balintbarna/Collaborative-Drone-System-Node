@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="est" default="ekf2"/>
+    <arg name="vehicle" default="iris_vu8lidars"/>
+    <!-- UAV1 -->
+    <group ns="uav1">
+        <!-- MAVROS and vehicle configs -->        
+        <arg name="ID" value="1"/>
+        <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+        <!-- PX4 SITL and vehicle spawn -->
+        <include file="$(find power-line-inspection)/launch/launch_single_vehicle.launch">
+            <arg name="x" default="0"/>
+            <arg name="y" default="0"/>
+            <arg name="z" default="0.25"/>
+            <arg name="R" default="0"/>
+            <arg name="P" default="0"/>
+            <arg name="Y" default="1.5707"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="mavlink_udp_port" value="14560"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value=""/>
+            <arg name="tgt_system" value="$(arg ID)"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+    </group>
+    <!-- UAV2 -->
+    <group ns="uav2">
+        <!-- MAVROS and vehicle configs -->
+        <arg name="ID" value="2"/>
+        <arg name="fcu_url" default="udp://:14541@localhost:14559"/>
+        <!-- PX4 SITL and vehicle spawn -->
+        <include file="$(find power-line-inspection)/launch/launch_single_vehicle.launch">
+            <arg name="x" default="1"/>
+            <arg name="y" default="0"/>
+            <arg name="z" default="0.25"/>
+            <arg name="R" default="0"/>
+            <arg name="P" default="0"/>
+            <arg name="Y" default="1.5707"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="mavlink_udp_port" value="14562"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value=""/>
+            <arg name="tgt_system" value="$(arg ID)"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+    </group>
+</launch>
