@@ -26,23 +26,15 @@ class mav():
         mavros.set_namespace(namespace)
 
         # setup subscriber
-        # /mavros/state
-        self.state_sub = rospy.Subscriber(mavros.get_topic('state'),
-                                    mavros_msgs.msg.State, self._state_callback)
-        # /mavros/local_position/pose
-        self.local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
-            SP.PoseStamped, self._local_position_callback)
-        # /mavros/setpoint_raw/target_local
-        # self.setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),mavros_msgs.msg.PositionTarget, self._setpoint_position_callback)
+        self._state_sub = rospy.Subscriber(mavros.get_topic('state'), mavros_msgs.msg.State, self._state_callback)
+        self._local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self._local_position_callback)
+        self._setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),mavros_msgs.msg.PositionTarget, self._setpoint_position_callback)
 
         # setup publisher
-        # /mavros/setpoint/position/local
-        self.setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
+        self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
 
         # setup service
-        # /mavros/cmd/arming
         self.set_arming = rospy.ServiceProxy(mavros.get_topic('cmd', 'arming'), mavros_msgs.srv.CommandBool)
-        # /mavros/set_mode
         self.set_mode = rospy.ServiceProxy(mavros.get_topic('set_mode'), mavros_msgs.srv.SetMode)
 
     def _state_callback(self, topic):
@@ -51,11 +43,16 @@ class mav():
         self.UAV_state.mode = topic.mode
         self.UAV_state.guided = topic.guided
 
-    # def _setpoint_position_callback(self, topic):
-    #     pass
+    def _setpoint_position_callback(self, topic):
+        print(topic)
+        pass
 
     def _local_position_callback(self, topic):
         self.current_pose = topic
+        self._publish_target_pose()
+    
+    def _publish_target_pose(self):
+        self._setpoint_local_pub.publish(self.target_pose)
 
     def wait_for_connection(self):
         while (not self.UAV_state.connected):
@@ -80,7 +77,6 @@ class mav():
 
     def set_target_pose(self, pose = PoseStamped()):
         self.target_pose = pose
-        self.setpoint_local_pub.publish(pose)
     
     def set_target_pos(self, pos = Point()):
         yaw = mav.orientation_to_yaw(self.target_pose.pose.orientation)
