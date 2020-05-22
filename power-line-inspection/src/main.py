@@ -21,6 +21,7 @@ from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamp
 # import files in package
 from mav import Mav
 from state_machine import StateMachine
+from message_tools import *
 
 class MainNode():
     def __init__(self):
@@ -72,8 +73,8 @@ class MainNode():
         text = topic.data
         textarr = np.array(text.split(";"))
         arr = textarr.astype(np.float)
-        
-        pose = Mav.create_setpoint_message_xyz_yaw(arr[0], arr[1], arr[2], arr[3])
+        print("new target pose: "+str(arr.tolist()))
+        pose = create_setpoint_message_xyz_yaw(arr[0], arr[1], arr[2], arr[3])
         self.mav1.set_target_pose(pose)
         self.mav2.set_target_pose(pose)
         self.sm.set_next_state(self.sm.States.IDLE)

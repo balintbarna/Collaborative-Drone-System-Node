@@ -16,6 +16,8 @@ import math
 from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+from message_tools import *
+
 class Mav():
     def __init__(self, namespace = "mavros"):
         self.rate = rospy.Rate(20)
@@ -58,7 +60,7 @@ class Mav():
     def _publish_target_raw(self):
         message = PositionTarget()
         message.position = self.target_pose.pose.position
-        message.yaw = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
+        message.yaw = orientation_to_yaw(self.target_pose.pose.orientation)
         message.velocity = Vector3()
         message.acceleration_or_force = Vector3()
         message.yaw_rate = 0
@@ -95,8 +97,8 @@ class Mav():
         return dist
     
     def get_yaw_error(self):
-        sy = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
-        cy = Mav.orientation_to_yaw(self.current_pose.pose.orientation)
+        sy = orientation_to_yaw(self.target_pose.pose.orientation)
+        cy = orientation_to_yaw(self.current_pose.pose.orientation)
         yaw = abs(sy - cy)
         return yaw
     
@@ -120,48 +122,11 @@ class Mav():
         self.target_pose = pose
     
     def set_target_pos(self, pos = Point()):
-        yaw = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
-        pose = Mav.create_setpoint_message_pos_yaw(pos, yaw)
+        yaw = orientation_to_yaw(self.target_pose.pose.orientation)
+        pose = create_setpoint_message_pos_yaw(pos, yaw)
         self.set_target_pose(pose)
 
     def set_target_yaw(self, yaw):
         pos = self.target_pose.pose.position
-        pose = Mav.create_setpoint_message_pos_yaw(pos, yaw)
+        pose = create_setpoint_message_pos_yaw(pos, yaw)
         self.set_target_pose(pose)
-    
-    @staticmethod
-    def yaw_to_orientation(yaw):
-        quat_tf = quaternion_from_euler(0, 0, yaw)
-        ori = Quaternion(quat_tf[0], quat_tf[1], quat_tf[2], quat_tf[3])
-        return ori
-    
-    @staticmethod
-    def orientation_to_yaw(orientation = Quaternion()):
-        quat_tf = [orientation.x, orientation.y, orientation.z, orientation.w]
-        yaw = euler_from_quaternion(quat_tf)[2]
-        return yaw
-
-    @staticmethod
-    def create_setpoint_message_xyz_yaw(x, y, z, yaw = 0):
-        pos = Point(x,y,z)
-        return Mav.create_setpoint_message_pos_yaw(pos, yaw)
-
-    @staticmethod
-    def create_setpoint_message_pos_yaw(pos, yaw):
-        ori = Mav.yaw_to_orientation(yaw)
-        return Mav.create_setpoint_message_pos_ori(pos, ori)
-
-    @staticmethod
-    def create_setpoint_message_pos_ori(pos = Point(), ori = Quaternion()):
-        pose = Pose(pos, ori)
-        return Mav.create_setpoint_message_pose(pose)
-    
-    @staticmethod
-    def create_setpoint_message_pose(pose = Pose()):
-        setpoint_msg = mavros.setpoint.PoseStamped(
-            header=mavros.setpoint.Header(
-                frame_id="att_pose",
-                stamp=rospy.Time.now()),
-        )
-        setpoint_msg.pose = pose
-        return setpoint_msg
