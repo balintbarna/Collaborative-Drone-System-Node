@@ -1,7 +1,7 @@
 from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import rospy
-import mavros
+import mavros.setpoint
 
 def yaw_to_orientation(yaw):
     quat_tf = quaternion_from_euler(0, 0, yaw)

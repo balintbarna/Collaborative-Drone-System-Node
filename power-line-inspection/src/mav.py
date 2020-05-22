@@ -35,7 +35,6 @@ class Mav():
 
         # setup publisher
         self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
-        self._setpoint_raw_pub = rospy.Publisher(mavros.get_topic('setpoint_raw', 'local'), PositionTarget)
 
         # setup service
         self.set_arming = rospy.ServiceProxy(mavros.get_topic('cmd', 'arming'), mavros_msgs.srv.CommandBool)
@@ -56,15 +55,6 @@ class Mav():
     
     def _publish_target_pose(self):
         self._setpoint_local_pub.publish(self.target_pose)
-    
-    def _publish_target_raw(self):
-        message = PositionTarget()
-        message.position = self.target_pose.pose.position
-        message.yaw = orientation_to_yaw(self.target_pose.pose.orientation)
-        message.velocity = Vector3()
-        message.acceleration_or_force = Vector3()
-        message.yaw_rate = 0
-        self._setpoint_raw_pub.publish(message)
 
     def wait_for_connection(self):
         while (not self.UAV_state.connected):
