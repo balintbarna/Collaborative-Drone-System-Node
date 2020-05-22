@@ -30,10 +30,10 @@ class Mav():
         self._state_sub = rospy.Subscriber(mavros.get_topic('state'), State, self._state_callback)
         self._local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), PoseStamped, self._local_position_callback)
         self._local_velocity_sub = rospy.Subscriber(mavros.get_topic('local_position', 'velocity_body'), TwistStamped, self._local_velocity_callback)
-        self._setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'), PositionTarget, self._setpoint_position_callback)
 
         # setup publisher
         self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
+        self._setpoint_raw_pub = rospy.Publisher(mavros.get_topic('setpoint_raw', 'local'), PositionTarget)
 
         # setup service
         self.set_arming = rospy.ServiceProxy(mavros.get_topic('cmd', 'arming'), mavros_msgs.srv.CommandBool)
@@ -45,10 +45,6 @@ class Mav():
         self.UAV_state.mode = topic.mode
         self.UAV_state.guided = topic.guided
 
-    def _setpoint_position_callback(self, topic):
-        # print(topic)
-        pass
-
     def _local_position_callback(self, topic):
         self.current_pose = topic
         self._publish_target_pose()
@@ -58,6 +54,15 @@ class Mav():
     
     def _publish_target_pose(self):
         self._setpoint_local_pub.publish(self.target_pose)
+    
+    def _publish_target_raw(self):
+        message = PositionTarget()
+        message.position = self.target_pose.pose.position
+        message.yaw = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
+        message.velocity = Vector3()
+        message.acceleration_or_force = Vector3()
+        message.yaw_rate = 0
+        self._setpoint_raw_pub.publish(message)
 
     def wait_for_connection(self):
         while (not self.UAV_state.connected):
