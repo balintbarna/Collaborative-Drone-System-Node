@@ -16,7 +16,7 @@ import math
 from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
-class mav():
+class Mav():
     def __init__(self, namespace = "mavros"):
         self.rate = rospy.Rate(20)
         self.current_pose = PoseStamped()
@@ -44,7 +44,7 @@ class mav():
         self.UAV_state.guided = topic.guided
 
     def _setpoint_position_callback(self, topic):
-        print(topic)
+        # print(topic)
         pass
 
     def _local_position_callback(self, topic):
@@ -63,29 +63,34 @@ class mav():
             self.rate.sleep()
     
     def has_arrived(self):
+        maxdist = 0.5 # m
+        maxang = 0.1 # 6 deg in rad
         sp = self.target_pose.pose.position
-        sy = mav.orientation_to_yaw(self.target_pose.pose.orientation)
+        sy = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
         cp = self.current_pose.pose.position
-        cy = mav.orientation_to_yaw(self.current_pose.pose.orientation)
-        maxdist = 0.1 # m
-        maxang = 0.05 # 3 deg in rad
-        diff = abs(sp.x-cp.x)/maxdist + abs(sp.y-cp.y)/maxdist + abs(sp.z-cp.z)/maxdist + abs(sy - cy)/maxang
-        if diff < 1:
+        cy = Mav.orientation_to_yaw(self.current_pose.pose.orientation)
+        x = sp.x-cp.x
+        y = sp.y-cp.y
+        z = sp.z-cp.z
+        dist = math.sqrt(x*x + y*y + z*z)
+        yaw = abs(sy - cy)
+        posgood = dist < maxdist
+        anggood = yaw < maxang
+        if posgood and anggood:
             return True
         return False
-
 
     def set_target_pose(self, pose = PoseStamped()):
         self.target_pose = pose
     
     def set_target_pos(self, pos = Point()):
-        yaw = mav.orientation_to_yaw(self.target_pose.pose.orientation)
-        pose = mav.create_setpoint_message_pos_yaw(pos, yaw)
+        yaw = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
+        pose = Mav.create_setpoint_message_pos_yaw(pos, yaw)
         self.set_target_pose(pose)
 
     def set_target_yaw(self, yaw):
         pos = self.target_pose.pose.position
-        pose = mav.create_setpoint_message_pos_yaw(pos, yaw)
+        pose = Mav.create_setpoint_message_pos_yaw(pos, yaw)
         self.set_target_pose(pose)
     
     @staticmethod
@@ -103,17 +108,17 @@ class mav():
     @staticmethod
     def create_setpoint_message_xyz_yaw(x, y, z, yaw = 0):
         pos = Point(x,y,z)
-        return mav.create_setpoint_message_pos_yaw(pos, yaw)
+        return Mav.create_setpoint_message_pos_yaw(pos, yaw)
 
     @staticmethod
     def create_setpoint_message_pos_yaw(pos, yaw):
-        ori = mav.yaw_to_orientation(yaw)
-        return mav.create_setpoint_message_pos_ori(pos, ori)
+        ori = Mav.yaw_to_orientation(yaw)
+        return Mav.create_setpoint_message_pos_ori(pos, ori)
 
     @staticmethod
     def create_setpoint_message_pos_ori(pos = Point(), ori = Quaternion()):
         pose = Pose(pos, ori)
-        return mav.create_setpoint_message_pose(pose)
+        return Mav.create_setpoint_message_pose(pose)
     
     @staticmethod
     def create_setpoint_message_pose(pose = Pose()):
