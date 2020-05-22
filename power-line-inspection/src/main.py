@@ -14,30 +14,14 @@ import signal
 from geometry_msgs.msg import Vector3
 import math
 
+from mav import mav
+
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
     sys.exit(0)
 
-
 signal.signal(signal.SIGINT, signal_handler)
 
-current_pose = Vector3()
-UAV_state = mavros_msgs.msg.State()
-
-
-def _state_callback(topic):
-    UAV_state.armed = topic.armed
-    UAV_state.connected = topic.connected
-    UAV_state.mode = topic.mode
-    UAV_state.guided = topic.guided
-
-
-def _setpoint_position_callback(topic):
-    pass
-
-def _local_position_callback(topic):
-    print(topic.pose.position.z)
-    pass
 
 def _set_pose(pose, x, y, z):
     pose.pose.position.x = x
@@ -47,81 +31,80 @@ def _set_pose(pose, x, y, z):
         frame_id="att_pose",
         stamp=rospy.Time.now())
 
-
-def update_setpoint():
-    pass
-
-
-def main():
-    rospy.init_node('default_offboard', anonymous=True)
-    rate = rospy.Rate(20)
-    mavros.set_namespace('/mavros')
-
-    # setup subscriber
-    # /mavros/state
-    state_sub = rospy.Subscriber(mavros.get_topic('state'),
-                                 mavros_msgs.msg.State, _state_callback)
-    # /mavros/local_position/pose
-    local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
-         SP.PoseStamped, _local_position_callback)
-    # /mavros/setpoint_raw/target_local
-    setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),
-                                          mavros_msgs.msg.PositionTarget, _setpoint_position_callback)
-
-    # setup publisher
-    # /mavros/setpoint/position/local
-    setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
-
-    # setup service
-    # /mavros/cmd/arming
-    set_arming = rospy.ServiceProxy('/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
-    # /mavros/set_mode
-    set_mode = rospy.ServiceProxy('/mavros/set_mode', mavros_msgs.srv.SetMode)
-
+def create_setpoint_message(x, y, z):
     setpoint_msg = mavros.setpoint.PoseStamped(
         header=mavros.setpoint.Header(
             frame_id="att_pose",
             stamp=rospy.Time.now()),
     )
+    setpoint_msg.pose.position.x = x
+    setpoint_msg.pose.position.y = y
+    setpoint_msg.pose.position.z = z
+    return setpoint_msg
+
+def main():
+    rospy.init_node('default_offboard', anonymous=True)
+    rate = rospy.Rate(20)
+    mav1 = mav("/uav1/mavros")
+    mav2 = mav("/uav2/mavros")
 
     # wait for FCU connection
-    while (not UAV_state.connected):
-        rate.sleep()
+    mav1.wait_for_connection()
+    mav2.wait_for_connection()
 
     # initialize the setpoint
-    setpoint_msg.pose.position.x = 0
-    setpoint_msg.pose.position.y = 0
-    setpoint_msg.pose.position.z = 3
+    message_zero = create_setpoint_message(0,0,0)
+    message1 = create_setpoint_message(0, 0, 3)
+    message2 = create_setpoint_message(1, 0, 3)
 
-    mavros.command.arming(True)
+    mav1.set_arming(True)
+    mav2.set_arming(True)
 
     # send 100 setpoints before starting
-    for i in range(0, 50):
-        setpoint_local_pub.publish(setpoint_msg)
-        rate.sleep()
+    # for i in range(0, 50):
+    #     mav1.setpoint_local_pub.publish(message1)
+    #     mav2.setpoint_local_pub.publish(message2)
+    #     rate.sleep()
 
-    set_mode(0, 'OFFBOARD')
+    mav1.set_mode(0, 'OFFBOARD')
+    mav2.set_mode(0, 'OFFBOARD')
 
     last_request = rospy.Time.now()
 
     # enter the main loop
     while (True):
         # print "Entered whiled loop"
-        if (UAV_state.mode != "OFFBOARD" and
+        if (mav1.UAV_state.mode != "OFFBOARD" and
                 (rospy.Time.now() - last_request > rospy.Duration(5.0))):
-            set_mode(0, 'OFFBOARD')
+            mav1.set_mode(0, 'OFFBOARD')
             print("enabling offboard mode")
             last_request = rospy.Time.now()
         else:
-            if (not UAV_state.armed and
+            if (not mav1.UAV_state.armed and
                     (rospy.Time.now() - last_request > rospy.Duration(5.0))):
-                if (mavros.command.arming(True)):
+                if (mav1.set_arming(True)):
+                    print("Vehicle armed")
+                last_request = rospy.Time.now()
+        if (mav2.UAV_state.mode != "OFFBOARD" and
+                (rospy.Time.now() - last_request > rospy.Duration(5.0))):
+            mav2.set_mode(0, 'OFFBOARD')
+            print("enabling offboard mode")
+            last_request = rospy.Time.now()
+        else:
+            if (not mav2.UAV_state.armed and
+                    (rospy.Time.now() - last_request > rospy.Duration(5.0))):
+                if (mav2.set_arming(True)):
                     print("Vehicle armed")
                 last_request = rospy.Time.now()
 
-        setpoint_msg.pose.position.z = 3 + 2*math.sin(rospy.get_time() * 0.2)
-        print("Height: %f" % setpoint_msg.pose.position.z)
-        setpoint_local_pub.publish(setpoint_msg)
+        # message1.pose.position.z = 3 + 2*math.sin(rospy.get_time() * 0.2)
+        # mav1.setpoint_local_pub.publish(message1)
+        mav1.setpoint_local_pub.publish(message_zero)
+        # mav1.setpoint_global_pub.publish(message1)
+        # message2.pose.position.z = 3 + 2*math.sin(rospy.get_time() * 0.2)
+        # mav2.setpoint_local_pub.publish(message2)
+        mav2.setpoint_local_pub.publish(message_zero)
+        # mav2.setpoint_global_pub.publish(message2)
         rate.sleep()
     return 0
 
