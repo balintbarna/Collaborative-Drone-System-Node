@@ -11,8 +11,8 @@ import mavros_msgs.msg
 import mavros_msgs.srv
 import sys
 import signal
-from geometry_msgs.msg import Vector3
 import math
+from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 
 from mav import mav
 
@@ -23,7 +23,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def _set_pose(pose, x, y, z):
+def change_pose(pose, x, y, z):
     pose.pose.position.x = x
     pose.pose.position.y = y
     pose.pose.position.z = z
@@ -31,45 +31,20 @@ def _set_pose(pose, x, y, z):
         frame_id="att_pose",
         stamp=rospy.Time.now())
 
-def create_setpoint_message(x, y, z):
-    setpoint_msg = mavros.setpoint.PoseStamped(
-        header=mavros.setpoint.Header(
-            frame_id="att_pose",
-            stamp=rospy.Time.now()),
-    )
-    setpoint_msg.pose.position.x = x
-    setpoint_msg.pose.position.y = y
-    setpoint_msg.pose.position.z = z
-    return setpoint_msg
-
 def main():
     rospy.init_node('default_offboard', anonymous=True)
     rate = rospy.Rate(20)
-    mav1 = mav("/uav1/mavros")
-    mav2 = mav("/uav2/mavros")
+    mav1 = mav("uav1/mavros")
+    mav2 = mav("uav2/mavros")
 
     # wait for FCU connection
     mav1.wait_for_connection()
     mav2.wait_for_connection()
 
-    # initialize the setpoint
-    message_zero = create_setpoint_message(0,0,0)
-    message1 = create_setpoint_message(0, 0, 3)
-    message2 = create_setpoint_message(1, 0, 3)
-
     mav1.set_arming(True)
     mav2.set_arming(True)
 
-    # send 100 setpoints before starting
-    # for i in range(0, 50):
-    #     mav1.setpoint_local_pub.publish(message1)
-    #     mav2.setpoint_local_pub.publish(message2)
-    #     rate.sleep()
-
-    mav1.set_mode(0, 'OFFBOARD')
-    mav2.set_mode(0, 'OFFBOARD')
-
-    last_request = rospy.Time.now()
+    last_request = rospy.Time.now() - rospy.Duration(5.0)
 
     # enter the main loop
     while (True):
@@ -97,13 +72,18 @@ def main():
                     print("Vehicle armed")
                 last_request = rospy.Time.now()
 
+        target = Point(3, 3, 3)
+        mav1.set_target_pos(target)
+        mav2.set_target_pos(target)
+        if mav1.has_arrived() or mav2.has_arrived():
+            print("ARRIVED")
         # message1.pose.position.z = 3 + 2*math.sin(rospy.get_time() * 0.2)
         # mav1.setpoint_local_pub.publish(message1)
-        mav1.setpoint_local_pub.publish(message_zero)
+        # mav1.setpoint_local_pub.publish(message_zero)
         # mav1.setpoint_global_pub.publish(message1)
         # message2.pose.position.z = 3 + 2*math.sin(rospy.get_time() * 0.2)
         # mav2.setpoint_local_pub.publish(message2)
-        mav2.setpoint_local_pub.publish(message_zero)
+        # mav2.setpoint_local_pub.publish(message_zero)
         # mav2.setpoint_global_pub.publish(message2)
         rate.sleep()
     return 0
