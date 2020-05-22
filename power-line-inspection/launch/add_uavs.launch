@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="est" default="ekf2"/>
-    <arg name="vehicle" default="iris_vu8lidars"/>
+    <arg name="vehicle1" default="iris_vu8lidars"/>
+    <arg name="vehicle2" default="iris"/>
     <!-- UAV1 -->
     <group ns="uav1">
         <!-- MAVROS and vehicle configs -->        
@@ -9,15 +10,15 @@
         <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find power-line-inspection)/launch/launch_single_vehicle.launch">
-            <arg name="x" default="0"/>
-            <arg name="y" default="0"/>
-            <arg name="z" default="0.25"/>
-            <arg name="R" default="0"/>
-            <arg name="P" default="0"/>
-            <arg name="Y" default="1.5707"/>
-            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="x" value="0"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="1.5707"/>
+            <arg name="vehicle" value="$(arg vehicle1)"/>
             <arg name="mavlink_udp_port" value="14560"/>
-            <arg name="sdf" value="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/model.sdf"/>
+            <arg name="sdf" value="$(find mavlink_sitl_gazebo)/models/$(arg vehicle1)/model.sdf"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -34,16 +35,16 @@
         <arg name="ID" value="2"/>
         <arg name="fcu_url" default="udp://:14541@localhost:14559"/>
         <!-- PX4 SITL and vehicle spawn -->
-        <include file="$(find power-line-inspection)/launch/launch_single_vehicle.launch">
-            <arg name="x" default="1"/>
-            <arg name="y" default="0"/>
-            <arg name="z" default="0.25"/>
-            <arg name="R" default="0"/>
-            <arg name="P" default="0"/>
-            <arg name="Y" default="1.5707"/>
-            <arg name="vehicle" value="$(arg vehicle)"/>
+        <include file="$(find px4)/launch/single_vehicle_spawn.launch">
+            <arg name="x" value="1"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="1.5707"/>
+            <arg name="vehicle" value="$(arg vehicle2)"/>
+            <arg name="rcS" value="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle2)_$(arg ID)"/>
             <arg name="mavlink_udp_port" value="14562"/>
-            <arg name="sdf" value="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)2/model.sdf"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
