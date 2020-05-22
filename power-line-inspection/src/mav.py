@@ -7,7 +7,7 @@ from mavros.utils import *
 from mavros import setpoint as SP
 import mavros.setpoint
 import mavros.command
-import mavros_msgs.msg
+from mavros_msgs.msg import State, PositionTarget
 import mavros_msgs.srv
 import sys
 import signal
@@ -20,15 +20,17 @@ class Mav():
     def __init__(self, namespace = "mavros"):
         self.rate = rospy.Rate(20)
         self.current_pose = PoseStamped()
+        self.current_velocity = TwistStamped()
         self.target_pose = PoseStamped()
         self.UAV_state = mavros_msgs.msg.State()
 
         mavros.set_namespace(namespace)
 
         # setup subscriber
-        self._state_sub = rospy.Subscriber(mavros.get_topic('state'), mavros_msgs.msg.State, self._state_callback)
-        self._local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self._local_position_callback)
-        self._setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),mavros_msgs.msg.PositionTarget, self._setpoint_position_callback)
+        self._state_sub = rospy.Subscriber(mavros.get_topic('state'), State, self._state_callback)
+        self._local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), PoseStamped, self._local_position_callback)
+        self._local_velocity_sub = rospy.Subscriber(mavros.get_topic('local_position', 'velocity_body'), TwistStamped, self._local_velocity_callback)
+        self._setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'), PositionTarget, self._setpoint_position_callback)
 
         # setup publisher
         self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
@@ -50,6 +52,9 @@ class Mav():
     def _local_position_callback(self, topic):
         self.current_pose = topic
         self._publish_target_pose()
+
+    def _local_velocity_callback(self, topic):
+        self.current_velocity = topic
     
     def _publish_target_pose(self):
         self._setpoint_local_pub.publish(self.target_pose)
@@ -65,20 +70,46 @@ class Mav():
     def has_arrived(self):
         maxdist = 0.5 # m
         maxang = 0.1 # 6 deg in rad
+        max_vel = 0.3 # m/s
+        max_angvel = 0.05
+        posgood = self.get_pos_error() < maxdist
+        anggood = self.get_yaw_error() < maxang
+        velgood = self.get_velocity_abs() < max_vel
+        angvelgood = self.get_ang_vel_abs() < max_angvel
+        if posgood and anggood and velgood and angvelgood:
+            return True
+        return False
+    
+    def get_pos_error(self):
         sp = self.target_pose.pose.position
-        sy = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
         cp = self.current_pose.pose.position
-        cy = Mav.orientation_to_yaw(self.current_pose.pose.orientation)
         x = sp.x-cp.x
         y = sp.y-cp.y
         z = sp.z-cp.z
         dist = math.sqrt(x*x + y*y + z*z)
+        return dist
+    
+    def get_yaw_error(self):
+        sy = Mav.orientation_to_yaw(self.target_pose.pose.orientation)
+        cy = Mav.orientation_to_yaw(self.current_pose.pose.orientation)
         yaw = abs(sy - cy)
-        posgood = dist < maxdist
-        anggood = yaw < maxang
-        if posgood and anggood:
-            return True
-        return False
+        return yaw
+    
+    def get_velocity_abs(self):
+        vel = self.current_velocity.twist.linear
+        x = vel.x
+        y = vel.y
+        z = vel.z
+        norm = math.sqrt(x*x + y*y + z*z)
+        return norm
+    
+    def get_ang_vel_abs(self):
+        vel = self.current_velocity.twist.angular
+        x = vel.x
+        y = vel.y
+        z = vel.z
+        norm = math.sqrt(x*x + y*y + z*z)
+        return norm
 
     def set_target_pose(self, pose = PoseStamped()):
         self.target_pose = pose
