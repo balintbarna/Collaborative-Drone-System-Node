@@ -1,10 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-    <include file="$(find power-line-inspection)/launch/world.launch">
-    </include>
-
-    <include file="$(find power-line-inspection)/launch/add_uavs.launch">
+    <include file="$(find power-line-inspection)/launch/world_and_uavs.launch">
     </include>
 
     <include file="$(find power-line-inspection)/launch/control.launch">
