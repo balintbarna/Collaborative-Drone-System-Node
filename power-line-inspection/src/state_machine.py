@@ -74,15 +74,7 @@ class StateMachine():
             self._mav1.set_target_pos(target)
             self._mav2.set_target_pos(target)
             self.set_current_state(self.States.WAITING_TO_ARRIVE)
-            # self.set_next_state(self.States.CLOSE_TO_WIRE)
             self.set_next_state(self.States.UNDER_WIRE)
-
-        # elif cur == self.States.CLOSE_TO_WIRE:
-        #     target = Point(-35, 30, 12)
-        #     self._mav1.set_target_pos(target)
-        #     self._mav2.set_target_pos(target)
-        #     self.set_current_state(self.States.WAITING_TO_ARRIVE)
-        #     self.set_next_state(self.States.UNDER_WIRE)
 
         elif cur == self.States.UNDER_WIRE:
             target = Point(-35.2, 30, 11)
@@ -91,7 +83,6 @@ class StateMachine():
             self.set_current_state(self.States.WAITING_TO_ARRIVE)
             self.set_next_state(self.States.ALIGN_YAW)
             self.pose_error = None
-            # self.set_next_state(self.States.IDLE)
 
         elif cur == self.States.ALIGN_YAW:
             if self.pose_error == None:
