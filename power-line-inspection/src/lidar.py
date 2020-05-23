@@ -3,11 +3,10 @@ from math import (degrees, radians, floor, isinf, sin, cos)
 import numpy as np
 
 import rospy
-import rospkg
 
 from sensor_msgs.msg import LaserScan, Range
 from geometry_msgs.msg import PoseStamped
-from message_tools import *
+from message_tools import create_setpoint_message_xyz_yaw
 
 VU8_100_Conv_Pub = '/LiDAR/VU8_100Deg/laserscan'
 VU8_48_Conv_Pub = '/LiDAR/VU8_48Deg/laserscan'
@@ -18,8 +17,8 @@ topic_displacement = "/wire_displacement"
 class LidarProcessor():
     def __init__(self):
         rospy.init_node('lidar_processing')
-        self.vu8Channels = []
-        self.VU8Segments = 8
+        self.front_angle_and_distance = None
+        self.back_angle_and_distance = None
 
         self._lidar48_sub = rospy.Subscriber(VU8_48_Conv_Pub, LaserScan, self.on_lidar_48_data)
         self._lidar100_sub = rospy.Subscriber(VU8_100_Conv_Pub, LaserScan, self.on_lidar_100_data)
@@ -33,13 +32,14 @@ class LidarProcessor():
         assert angle_min == -angle_max
         self.front_angle_and_distance = self.process_lidar_data(topic.ranges, angle_min)
         self.calculate_and_publish_displacement_and_yaw()
+        self.front_angle_and_distance = None
+        self.back_angle_and_distance = None
     
     def on_lidar_100_data(self, topic = LaserScan()):
         angle_min = topic.angle_min
         angle_max = topic.angle_max
         assert angle_min == -angle_max
         self.back_angle_and_distance = self.process_lidar_data(topic.ranges, angle_max)
-        self.calculate_and_publish_displacement_and_yaw()
     
     def process_lidar_data(self, ranges, limit):
         count = len(ranges)
@@ -59,18 +59,15 @@ class LidarProcessor():
         return angle_value_average, distance_value_average
 
     def calculate_and_publish_displacement_and_yaw(self):
-        try:
-            self.front_angle_and_distance
-            self.back_angle_and_distance
-        except AttributeError:
+        if self.front_angle_and_distance == None or self.back_angle_and_distance == None:
             return
 
         angle_front, distance_front = self.front_angle_and_distance
         angle_back, distance_back = self.back_angle_and_distance
-        angle_error = angle_front - angle_back
         if isinf(angle_front) or isinf(angle_back):
             return
 
+        angle_error = angle_front - angle_back
         average_angle = (angle_front + angle_back) / 2
         average_distance = (distance_front + distance_back) / 2
         distance_z = cos(average_angle) * average_distance
