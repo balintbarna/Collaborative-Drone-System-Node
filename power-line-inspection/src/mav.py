@@ -65,7 +65,7 @@ class Mav():
     def has_arrived(self):
         maxdist = 0.5 # m
         maxang = 0.1 # 6 deg in rad
-        max_vel = 0.3 # m/s
+        max_vel = 0.2 # m/s
         max_angvel = 0.05
         posgood = self.get_pos_error() < maxdist
         anggood = self.get_yaw_error() < maxang
