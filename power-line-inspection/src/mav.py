@@ -10,11 +10,12 @@ import mavros_msgs.srv
 import sys
 import signal
 import math
+import numpy as np
 
 from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
-from message_tools import create_setpoint_message_pos_yaw, orientation_to_yaw
+from message_tools import create_setpoint_message_pos_yaw, orientation_to_yaw, point_to_arr, create_setpoint_message_pos_ori, arr_to_point
 
 class Mav():
     def __init__(self, namespace = "mavros"):
@@ -52,7 +53,22 @@ class Mav():
         self.current_velocity = topic
     
     def _publish_target_pose(self):
-        self._setpoint_local_pub.publish(self.target_pose)
+        # self._setpoint_local_pub.publish(self.target_pose)
+        self._setpoint_local_pub.publish(self.distance_limited_target())
+    
+    def distance_limited_target(self):
+        point = self.target_pose.pose.position
+        current = point_to_arr(self.current_pose.pose.position)
+        target_arr = point_to_arr(point)
+        diff = target_arr - current
+        diffsize = np.linalg.norm(diff)
+        max_dist = 2
+        if diffsize < max_dist:
+            return self.target_pose
+        ratio = diffsize / max_dist
+        true_target = current + diff / ratio
+        new_point = arr_to_point(true_target)
+        return create_setpoint_message_pos_ori(new_point, self.target_pose.pose.orientation)
 
     def wait_for_connection(self):
         while (not self.UAV_state.connected):
