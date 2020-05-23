@@ -47,7 +47,7 @@ class LidarProcessor():
         distance_value_aggregator = 0
         non_inf_count = 0
         for i in range(0, count):
-            mult = count/3.5 - 1
+            mult = i/3.5 - 1
             angle_value = mult * limit
             distance_value = ranges[i]
             if not isinf(distance_value):

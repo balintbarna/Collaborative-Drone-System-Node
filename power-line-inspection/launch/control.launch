@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node name="control" pkg="power-line-inspection" type="main.py" output="screen" required="true"/>
-</launch>

@@ -3,8 +3,6 @@
 # import ROS libraries
 import rospy
 import mavros
-from mavros.utils import *
-from mavros import setpoint as SP
 import mavros.setpoint
 import mavros.command
 from mavros_msgs.msg import State, PositionTarget
@@ -16,7 +14,7 @@ import math
 from geometry_msgs.msg import TwistStamped, PoseStamped, PoseWithCovarianceStamped, Vector3, Vector3Stamped, Point, Quaternion, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
-from message_tools import *
+from message_tools import create_setpoint_message_pos_yaw, orientation_to_yaw
 
 class Mav():
     def __init__(self, namespace = "mavros"):

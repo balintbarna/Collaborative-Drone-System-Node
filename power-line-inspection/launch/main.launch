@@ -4,7 +4,9 @@
     <include file="$(find power-line-inspection)/launch/world_and_uavs.launch">
     </include>
 
-    <node name="control" pkg="power-line-inspection" type="main.py" output="screen" required="true"/>
+    <node name="lidar_converter" pkg="vu8_node" type="simLeddar.py" output="screen" required="true"/>
 
     <node name="lidar" pkg="power-line-inspection" type="lidar.py" output="screen" required="true"/>
+
+    <node name="control" pkg="power-line-inspection" type="main.py" output="screen" required="true"/>
 </launch>
