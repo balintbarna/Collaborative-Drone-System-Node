@@ -51,7 +51,7 @@ class MainNode():
             self.rate.sleep()
 
     def arm_and_set_mode(self):
-        if rospy.Time.now() - self.last_request > rospy.Duration(5.0):
+        if rospy.Time.now() - self.last_request > rospy.Duration(1.0):
             if self.mav1.UAV_state.mode != "OFFBOARD":
                 self.mav1.set_mode(0, 'OFFBOARD')
                 print("enabling offboard mode")
