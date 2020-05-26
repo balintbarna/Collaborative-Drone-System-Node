@@ -24,26 +24,41 @@ class Mav():
         self.current_velocity = TwistStamped()
         self.target_pose = PoseStamped()
         self.UAV_state = mavros_msgs.msg.State()
+        self.last_request = rospy.Time.now()
 
         mavros.set_namespace(namespace)
+
+        # setup publisher
+        self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
+        for i in range(0, 100):
+            self._setpoint_local_pub.publish(self.target_pose)
+
+        # setup service
+        self.set_arming = rospy.ServiceProxy(mavros.get_topic('cmd', 'arming'), mavros_msgs.srv.CommandBool)
+        self.set_mode = rospy.ServiceProxy(mavros.get_topic('set_mode'), mavros_msgs.srv.SetMode)
 
         # setup subscriber
         self._state_sub = rospy.Subscriber(mavros.get_topic('state'), State, self._state_callback)
         self._local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), PoseStamped, self._local_position_callback)
         self._local_velocity_sub = rospy.Subscriber(mavros.get_topic('local_position', 'velocity_body'), TwistStamped, self._local_velocity_callback)
 
-        # setup publisher
-        self._setpoint_local_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
-
-        # setup service
-        self.set_arming = rospy.ServiceProxy(mavros.get_topic('cmd', 'arming'), mavros_msgs.srv.CommandBool)
-        self.set_mode = rospy.ServiceProxy(mavros.get_topic('set_mode'), mavros_msgs.srv.SetMode)
-
     def _state_callback(self, topic):
         self.UAV_state.armed = topic.armed
         self.UAV_state.connected = topic.connected
         self.UAV_state.mode = topic.mode
         self.UAV_state.guided = topic.guided
+        self._set_states()
+    
+    def _set_states(self):
+        if rospy.Time.now() - self.last_request > rospy.Duration(1.0):
+            if self.UAV_state.mode != "OFFBOARD":
+                self.set_mode(0, 'OFFBOARD')
+                print("Enabling offboard mode")
+                self.last_request = rospy.Time.now()
+            if not self.UAV_state.armed:
+                if self.set_arming(True):
+                    print("Vehicle armed")
+                self.last_request = rospy.Time.now()
 
     def _local_position_callback(self, topic):
         self.current_pose = topic

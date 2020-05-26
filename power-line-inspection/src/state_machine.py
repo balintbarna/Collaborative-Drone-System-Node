@@ -51,7 +51,7 @@ class StateMachine():
         self.pose_error = topic.pose
     
     def set_params(self, params):
-        self._mav1, self._mav2 = params
+        self._mav1 = params
     
     def set_next_state(self, state):
         self._next_value = state
@@ -72,14 +72,12 @@ class StateMachine():
         elif cur == self.States.TAKE_OFF:
             target = Point(0, 0, 10)
             self._mav1.set_target_pos(target)
-            self._mav2.set_target_pos(target)
             self.set_current_state(self.States.WAITING_TO_ARRIVE)
             self.set_next_state(self.States.UNDER_WIRE)
 
         elif cur == self.States.UNDER_WIRE:
             target = Point(-35.2, 30, 11)
             self._mav1.set_target_pos(target)
-            self._mav2.set_target_pos(target)
             self.set_current_state(self.States.WAITING_TO_ARRIVE)
             self.set_next_state(self.States.ALIGN_YAW)
             self.pose_error = None
@@ -101,7 +99,6 @@ class StateMachine():
             current_yaw = orientation_to_yaw(self._mav1.current_pose.pose.orientation)
             target_yaw = current_yaw + pid_out
             self._mav1.set_target_yaw(target_yaw)
-            self._mav2.set_target_yaw(target_yaw)
         
         elif cur == self.States.ALIGN_POS:
             if self.pose_error == None:
@@ -126,7 +123,6 @@ class StateMachine():
             target = current_pos + ratio * err
             target_point = arr_to_point(target)
             self._mav1.set_target_pos(target_point)
-            self._mav2.set_target_pos(target_point)
 
 
 
